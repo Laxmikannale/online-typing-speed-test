@@ -1,0 +1,77 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-4 text-center">
+    <h2 class="text-white">Typing Test</h2>
+
+    <!-- ✅ Test Info -->
+    <div id="test-paragraph" class="p-3 bg-dark text-white rounded" style="min-height:120px;">
+        {{ paragraph.text }}
+    </div>
+    <textarea id="typing-input" class="form-control mt-3" placeholder="Start typing here..." rows="3"></textarea>
+
+    <p class="mt-3 text-white">
+        Time Left: <span id="time-left">{{ duration|default:0 }}</span> sec |
+        WPM: <span id="wpm">0</span> |
+        Accuracy: <span id="accuracy">0</span>% |
+        Errors: <span id="errors">0</span>
+    </p>
+
+    <!-- ✅ Hidden form to submit results -->
+    <form id="result-form" method="POST" action="{% url 'save_performance' %}">
+        {% csrf_token %}
+        <input type="hidden" name="wpm" id="wpm-input">
+        <input type="hidden" name="accuracy" id="accuracy-input">
+        <input type="hidden" name="errors" id="errors-input">
+        <input type="hidden" name="difficulty" value="{{ difficulty }}">
+        <input type="hidden" name="duration" value="{{ duration }}">
+    </form>
+</div>
+
+<script>
+let timeLeft = {{ duration|default:0 }};
+let timer;
+let typedChars = 0, correctChars = 0, errors = 0;
+let paragraph = document.getElementById("test-paragraph")?.innerText || "";
+
+document.getElementById("typing-input")?.addEventListener("input", function(){
+    let typedText = this.value;
+    typedChars = typedText.length;
+    errors = 0;
+
+    for (let i = 0; i < typedText.length; i++) {
+        if (typedText[i] !== paragraph[i]) errors++;
+    }
+    correctChars = typedChars - errors;
+
+    let wordsTyped = correctChars / 5;
+    let timeSpent = ({{ duration|default:1 }} - timeLeft) / 60;
+    let wpm = timeSpent > 0 ? Math.round(wordsTyped / timeSpent) : 0;
+    let accuracy = typedChars > 0 ? Math.round((correctChars / typedChars) * 100) : 0;
+
+    document.getElementById("wpm").textContent = wpm;
+    document.getElementById("accuracy").textContent = accuracy;
+    document.getElementById("errors").textContent = errors;
+
+    // ✅ Save in hidden fields
+    document.getElementById("wpm-input").value = wpm;
+    document.getElementById("accuracy-input").value = accuracy;
+    document.getElementById("errors-input").value = errors;
+});
+
+if (timeLeft > 0) {
+    timer = setInterval(() => {
+        timeLeft--;
+        document.getElementById("time-left").textContent = timeLeft;
+        if (timeLeft <= 0) {
+            clearInterval(timer);
+            document.getElementById("typing-input").disabled = true;
+
+            // ✅ Auto-submit result when time is up
+            document.getElementById("result-form").submit();
+        }
+    }, 1000);
+}
+</script>
+{% endblock %}

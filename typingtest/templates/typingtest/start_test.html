@@ -1,0 +1,279 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block content %}
+
+<style>
+  body { color:#fff; }
+  .typing-wrap { background:#0f0f0f; border-radius:12px; padding:18px; }
+  #passage { background:#1b1b1b; border:1px solid #333; min-height:110px; padding:12px; border-radius:8px; white-space:pre-wrap; }
+  #typingArea { width:100%; min-height:140px; margin-top:10px; background:#141414; color:#eee; border:1px solid #333; border-radius:8px; padding:10px; }
+  .controls { gap:10px; display:flex; flex-wrap:wrap; align-items:center; }
+  .stat { margin-top:8px; }
+  .btn-yellow { background:#f0b400; color:#111; border:none; padding:8px 14px; border-radius:8px; font-weight:600; }
+  .btn-yellow:disabled { opacity:.6; }
+
+  /* Performance button styling */
+  #seePerformanceBtn {
+    display: none;
+    background: #28a745;
+    color: #fff;
+    padding: 10px 18px;
+    border-radius: 8px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    text-decoration: none;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    opacity: 0;
+    transform: scale(0.9);
+    transition: all 0.4s ease;
+  }
+  #seePerformanceBtn.show {
+    display: inline-block;
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  /* ✅ Responsive Fixes */
+  @media (max-width: 768px) {
+    h2 { font-size: 1.5rem; text-align: center; }
+    .controls { flex-direction: column; align-items: stretch; }
+    .controls label { margin-top: 6px; }
+    .controls select, .controls button { width: 100% !important; margin-top: 6px; }
+    #typingArea { min-height: 120px; font-size: 0.95rem; }
+    .stat { font-size: 0.95rem; }
+    #seePerformanceBtn { width: 100%; text-align: center; font-size: 1rem; }
+  }
+</style>
+
+<div class="container mt-4">
+  <h2 class="mb-3">Typing Speed Test</h2>
+
+  <div class="typing-wrap">
+    <div class="controls mb-3">
+      <label>Difficulty:</label>
+      <select id="difficulty" class="form-select" style="width:auto;min-width:120px;">
+        <option value="easy">Easy</option>
+        <option value="medium">Medium</option>
+        <option value="hard">Hard</option>
+      </select>
+
+      <label class="ms-2">Duration:</label>
+      <select id="duration" class="form-select" style="width:auto;min-width:100px;">
+        <option value="1">1 min</option>
+        <option value="3">3 min</option>
+        <option value="5">5 min</option>
+      </select>
+
+      <button id="btnLoad" class="btn-yellow ms-2">Load Passage</button>
+      <button id="btnStart" class="btn-yellow" disabled>Start Test</button>
+      <button id="btnReset" class="btn-yellow" disabled>Reset</button>
+    </div>
+
+    <div id="passage">⚠ Click “Load Passage” to fetch a paragraph from the database.</div>
+
+    <textarea id="typingArea" placeholder="Start typing here..." disabled></textarea>
+
+    <div class="mt-3">
+      <div class="stat">⏱ Time Left: <span id="time">0</span> sec</div>
+      <div class="stat">⚡ WPM: <span id="wpm">0</span></div>
+      <div class="stat">🎯 Accuracy: <span id="accuracy">0%</span></div>
+      <div class="stat">❌ Errors: <span id="errors">0</span></div>
+    </div>
+
+    <!-- See Performance button -->
+    <div class="mt-4 text-center">
+      <a href="{% url 'performance_tracking' %}" id="seePerformanceBtn">📊 See Your Performance</a>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  let passageText = "";
+  let timer = null;
+  let timeLeft = 0;
+  let totalDuration = 0;
+  let isRunning = false;
+  let errors = 0;
+  let finalWPM = 0;
+  let finalAccuracy = 0;
+
+  const el = (id) => document.getElementById(id);
+
+  const btnLoad  = el('btnLoad');
+  const btnStart = el('btnStart');
+  const btnReset = el('btnReset');
+  const passage  = el('passage');
+  const typing   = el('typingArea');
+  const timeEl   = el('time');
+  const wpmEl    = el('wpm');
+  const accEl    = el('accuracy');
+  const errEl    = el('errors');
+  const perfBtn  = el('seePerformanceBtn');
+
+  function setStats({wpm=0, acc=0, err=0, time=0}={}) {
+    wpmEl.textContent = wpm;
+    accEl.textContent = acc + "%";
+    errEl.textContent = err;
+    timeEl.textContent = time;
+  }
+
+  function resetUI() {
+    clearInterval(timer);
+    timer = null;
+    isRunning = false;
+    errors = 0;
+    typing.value = "";
+    typing.disabled = true;
+    btnStart.disabled = !passageText;
+    btnReset.disabled = false;
+    perfBtn.classList.remove('show');
+    setStats({wpm:0, acc:0, err:0, time:0});
+  }
+
+  async function loadParagraph() {
+    btnLoad.disabled = true;
+    passage.textContent = "Loading…";
+    const difficulty = el('difficulty').value;
+    const duration   = parseInt(el('duration').value, 10);
+
+    try {
+      const res = await fetch(`/get_paragraph/?difficulty=${encodeURIComponent(difficulty)}&duration=${duration}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+
+      if (data && data.text) {
+        passageText = String(data.text).trim();
+        passage.textContent = passageText;
+        btnStart.disabled = false;
+        typing.placeholder = "Press Start, then begin typing…";
+      } else {
+        passageText = "";
+        passage.textContent = "⚠ No passages found in database.";
+        btnStart.disabled = true;
+      }
+    } catch (e) {
+      console.error("Load error:", e);
+      passageText = "";
+      passage.textContent = "⚠ Failed to load passage.";
+      btnStart.disabled = true;
+    } finally {
+      btnLoad.disabled = false;
+      btnReset.disabled = false;
+    }
+  }
+
+  function startTest() {
+    if (!passageText) {
+      alert("No passage loaded. Click ‘Load Passage’ first.");
+      return;
+    }
+
+    totalDuration = parseInt(el('duration').value, 10) * 60;
+    timeLeft = totalDuration;
+    errors = 0;
+    isRunning = true;
+
+    typing.disabled = false;
+    typing.value = "";
+    typing.focus();
+
+    setStats({wpm:0, acc:100, err:0, time:timeLeft});
+    clearInterval(timer);
+    timer = setInterval(() => {
+      timeLeft--;
+      timeEl.textContent = timeLeft;
+      if (timeLeft <= 0) endTest();
+    }, 1000);
+
+    btnStart.disabled = true;
+    perfBtn.classList.remove('show');
+  }
+
+  typing.addEventListener('input', () => {
+    if (!isRunning) return;
+
+    const typed = typing.value;
+    const tLen  = typed.length;
+    errors = 0;
+    for (let i = 0; i < tLen; i++) {
+      if (typed[i] !== passageText[i]) errors++;
+    }
+
+    const correct = Math.max(0, tLen - errors);
+    const minutesElapsed = (totalDuration - timeLeft) / 60;
+    const wordsTyped = correct / 5;
+    finalWPM = minutesElapsed > 0 ? Math.round(wordsTyped / minutesElapsed) : 0;
+    finalAccuracy = tLen > 0 ? Math.max(0, Math.round((correct / tLen) * 100)) : 100;
+
+    setStats({wpm:finalWPM, acc:finalAccuracy, err:errors, time:timeLeft});
+  });
+
+  function endTest() {
+    clearInterval(timer);
+    timer = null;
+    isRunning = false;
+    typing.disabled = true;
+    btnStart.disabled = false;
+
+    // Save performance to backend
+    fetch("/save-performance/", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-CSRFToken": getCSRFToken()
+      },
+      body: JSON.stringify({
+        wpm: finalWPM,
+        accuracy: finalAccuracy,
+        errors: errors,
+        difficulty: el('difficulty').value
+      })
+    }).then(res => res.json())
+      .then(data => console.log("Performance saved:", data))
+      .catch(err => console.error("Save failed:", err));
+
+    // Show "See Performance" button
+    setTimeout(() => {
+      perfBtn.classList.add('show');
+    }, 300);
+  }
+
+  function getCSRFToken() {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+      const cookies = document.cookie.split(';');
+      for (let cookie of cookies) {
+        cookie = cookie.trim();
+        if (cookie.startsWith('csrftoken=')) {
+          cookieValue = decodeURIComponent(cookie.substring('csrftoken='.length));
+          break;
+        }
+      }
+    }
+    return cookieValue;
+  }
+
+  function resetAll() {
+    clearInterval(timer);
+    timer = null;
+    isRunning = false;
+    passageText = "";
+    passage.textContent = "⚠ Click “Load Passage” to fetch a paragraph from the database.";
+    typing.value = "";
+    typing.disabled = true;
+    btnStart.disabled = true;
+    btnReset.disabled = true;
+    perfBtn.classList.remove('show');
+    setStats({wpm:0, acc:0, err:0, time:0});
+  }
+
+  btnLoad.addEventListener('click', loadParagraph);
+  btnStart.addEventListener('click', startTest);
+  btnReset.addEventListener('click', resetAll);
+
+  resetAll();
+})();
+</script>
+
+{% endblock %}

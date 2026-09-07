@@ -1,0 +1,118 @@
+/* ===============================
+   Responsive Design CSS (Module 6)
+   Works for both User & Admin
+   =============================== */
+
+/* 🌐 Global Defaults */
+body {
+  font-size: 16px;
+  line-height: 1.5;
+  overflow-x: hidden; /* prevent sideways scrolling */
+}
+
+/* ===============================
+   Small Screens (phones < 768px)
+   =============================== */
+@media (max-width: 768px) {
+  /* Typography */
+  h1, h2, h3 {
+    font-size: 1.5rem;
+    text-align: center;
+  }
+  p {
+    font-size: 0.9rem;
+  }
+
+  /* Containers & Layout */
+  .container, .container-fluid {
+    padding: 10px !important;
+  }
+  .row {
+    margin: 0 !important;
+  }
+
+  /* Tables */
+  table {
+    font-size: 0.85rem;
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+
+  /* Buttons */
+  .btn {
+    font-size: 0.9rem;
+    padding: 8px 12px;
+  }
+
+  /* Forms */
+  form input, 
+  form select, 
+  form textarea {
+    width: 100% !important;
+  }
+
+  /* Filters & Flex Containers */
+  .filters {
+    display: flex;
+    flex-direction: column !important;
+    gap: 8px;
+  }
+
+  /* Cards & Dashboard Widgets */
+  .dashboard-card {
+    margin-bottom: 15px;
+  }
+
+  /* Navbar */
+  .navbar-brand {
+    font-size: 18px;
+  }
+  .navbar-nav {
+    text-align: center;
+  }
+}
+
+/* ===============================
+   Extra Small Screens (< 480px)
+   =============================== */
+@media (max-width: 480px) {
+  /* Typography */
+  h1, h2, h3 {
+    font-size: 1.2rem;
+  }
+  p {
+    font-size: 0.85rem;
+  }
+
+  /* Tables */
+  table {
+    font-size: 0.75rem;
+  }
+
+  /* Buttons */
+  .btn {
+    width: 100%;
+    font-size: 0.85rem;
+  }
+
+  /* Dashboard Cards */
+  .dashboard-card {
+    padding: 12px !important;
+  }
+}
+
+/* ===============================
+   Medium Screens (Tablets 768–1024px)
+   =============================== */
+@media (min-width: 769px) and (max-width: 1024px) {
+  body {
+    font-size: 15px;
+  }
+  .container {
+    padding: 15px !important;
+  }
+  .btn {
+    padding: 10px 18px;
+  }
+}

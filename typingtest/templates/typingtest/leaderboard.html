@@ -1,0 +1,78 @@
+{% extends 'base.html' %}
+{% block title %}Leaderboard{% endblock %}
+{% block content %}
+
+<style>
+    h2 {
+        text-align: center;
+        margin-bottom: 20px;
+        color: white;
+    }
+    .table-container {
+        background-color: #111;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0px 0px 15px rgba(255, 204, 0, 0.4);
+        overflow-x: auto; /* allows scroll on small devices */
+    }
+    table {
+        min-width: 600px; /* ensures table layout on mobile */
+    }
+    .table thead th {
+        color: yellow;
+        text-align: center;
+    }
+    .table tbody td {
+        text-align: center;
+        vertical-align: middle;
+    }
+    @media (max-width: 576px) {
+        h2 {
+            font-size: 1.5rem;
+        }
+        .table-container {
+            padding: 10px;
+        }
+        table {
+            font-size: 0.9rem;
+        }
+    }
+</style>
+
+<div class="container mt-4">
+    <h2>Leaderboard</h2>
+    {% if results %}
+        <div class="table-container">
+            <table class="table table-dark table-striped table-bordered">
+                <thead>
+                    <tr>
+                        <th>Rank</th>
+                        <th>User</th>
+                        <th>WPM</th>
+                        <th>Accuracy (%)</th>
+                        <th>Difficulty</th>
+                        <th>Duration (min)</th>
+                        <th>Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for result in results %}
+                    <tr>
+                        <td>{{ forloop.counter }}</td>
+                        <td>{{ result.user.username }}</td>
+                        <td>{{ result.wpm }}</td>
+                        <td>{{ result.accuracy }}</td>
+                        <td>{{ result.get_difficulty_display }}</td>
+                        <td>{{ result.duration }}</td>
+                        <td>{{ result.date|date:"M d, Y" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p class="text-center">No performances recorded yet.</p>
+    {% endif %}
+</div>
+
+{% endblock %}

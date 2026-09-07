@@ -1,0 +1,98 @@
+{% extends 'base.html' %}
+
+{% block title %}Performance Tracking{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4 text-center">🎯 Your Typing Performance</h2>
+
+    {% if performances and performances|length > 0 %}
+        <!-- Latest Test Result Card -->
+        <div class="card shadow-lg mb-5 border-0 rounded-3">
+            <div class="card-body text-center">
+                <h4 class="card-title text-success fw-bold">Your Latest Result</h4>
+                <p class="mb-3 text-muted small">
+                    {{ performances.0.date|date:"Y-m-d H:i" }}
+                </p>
+                <div class="row gy-3 text-center">
+                    <div class="col-6 col-md-3">
+                        <strong class="d-block">Difficulty:</strong>
+                        <span class="badge bg-primary">{{ performances.0.difficulty|title }}</span>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <strong class="d-block">Duration:</strong>
+                        <span class="badge bg-dark">{{ performances.0.duration }} min</span>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <strong class="d-block">WPM:</strong>
+                        <span class="text-primary fw-bold fs-5">{{ performances.0.wpm|floatformat:2 }}</span>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <strong class="d-block">Accuracy:</strong>
+                        <span class="text-info fw-bold fs-5">{{ performances.0.accuracy|floatformat:2 }}%</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ✅ Leaderboard Button right after the latest result -->
+        <div class="text-center mb-5">
+            <a href="{% url 'leaderboard' %}" class="btn btn-info btn-lg w-100 w-md-auto">
+                🏆 Compare with Others on Leaderboard
+            </a>
+        </div>
+
+        <!-- Full Performance History Table -->
+        <h4 class="mb-3">📜 Performance History</h4>
+        <div class="table-responsive">
+            <table class="table table-bordered table-hover align-middle text-center">
+                <thead class="table-light">
+                    <tr>
+                        <th>Date</th>
+                        <th>Difficulty</th>
+                        <th>Duration (min)</th>
+                        <th>WPM</th>
+                        <th>Accuracy (%)</th>
+                        <th>Errors</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for perf in performances %}
+                        {% if forloop.first %}
+                            <tr class="table-success fw-bold">
+                        {% else %}
+                            <tr>
+                        {% endif %}
+                            <td>{{ perf.date|date:"Y-m-d H:i" }}</td>
+                            <td>{{ perf.difficulty|title }}</td>
+                            <td>{{ perf.duration }}</td>
+                            <td class="{% if not forloop.first and perf.wpm < performances.0.wpm %}text-danger{% elif not forloop.first and perf.wpm > performances.0.wpm %}text-success{% endif %}">
+                                {{ perf.wpm|floatformat:2 }}
+                            </td>
+                            <td class="{% if not forloop.first and perf.accuracy < performances.0.accuracy %}text-danger{% elif not forloop.first and perf.accuracy > performances.0.accuracy %}text-success{% endif %}">
+                                {{ perf.accuracy|floatformat:2 }}
+                            </td>
+                            <td>{{ perf.errors }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+    {% else %}
+        <div class="alert alert-warning text-center">
+            🚀 No performance records found. Take your first test to see results!
+        </div>
+    {% endif %}
+
+    <!-- Navigation Buttons -->
+    <div class="row mt-4">
+        <div class="col-6 d-grid">
+            <a href="{% url 'home' %}" class="btn btn-secondary">⬅ Back to Home</a>
+        </div>
+        <div class="col-6 d-grid">
+            <a href="{% url 'start_test' %}" class="btn btn-success">🚀 Start New Test</a>
+        </div>
+    </div>
+</div>
+{% endblock %}
